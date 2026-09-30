@@ -2,7 +2,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, X } from "lucide-react";
+import { Plus, ScanLine, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -11,7 +11,10 @@ import { addRecent, RECENT_KEY } from "@/lib/recent-bills";
 import { computeSplit, type Item, type Person } from "@/lib/split";
 import { isValidThaiPhone } from "@/lib/promptpay";
 import { usePersistedString } from "@/hooks/use-persisted-string";
+import type { ScannedItem } from "@/lib/receipt-parse";
 import { QrSheet } from "./qr-sheet";
+import { BetaBadge } from "./beta-badge";
+import { ReceiptScan, type ScanMeta } from "./receipt-scan";
 import { SuggestChips } from "./suggest-chips";
 import { BILL_TITLE_SUGGESTIONS, ITEM_SUGGESTIONS } from "./suggestions";
 
@@ -65,6 +68,7 @@ export function BillSplitter() {
   const [itemName, setItemName] = useState("");
   const [itemPrice, setItemPrice] = useState("");
   const [qrFor, setQrFor] = useState<string | null>(null);
+  const [scanOpen, setScanOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [itemError, setItemError] = useState<string | null>(null);
@@ -113,6 +117,16 @@ export function BillSplitter() {
     setItems((v) => [...v, { id: uid(), name, price, people: people.map((p) => p.id) }]);
     setItemName("");
     setItemPrice("");
+  }
+  /** รายการที่สแกน+ตรวจแก้แล้ว → เติมลงบิล (ทุกคนหารเท่ากันก่อน แล้วแตะปิดคนที่ไม่กิน) */
+  function applyScanned(scanned: ScannedItem[], meta: ScanMeta) {
+    const everyone = people.map((p) => p.id);
+    setItems((v) => [
+      ...v,
+      ...scanned.map((s) => ({ id: uid(), name: s.name, price: s.priceSatang, people: everyone })),
+    ]);
+    if (meta.servicePct != null) setService(meta.servicePct > 0);
+    if (meta.vatPct != null) setVat(meta.vatPct > 0);
   }
   function toggle(itemId: string, personId: string) {
     setItems((v) =>
@@ -242,6 +256,15 @@ export function BillSplitter() {
 
       {/* 3) รายการ + ค่าบริการ/VAT */}
       <StepCard step={3} title="รายการ" hint={items.length ? `${items.length} รายการ` : "เพิ่มอาหาร/ของที่สั่ง แล้วเลือกว่าใครกิน"}>
+        <div className="flex flex-col gap-1.5">
+          <Button variant="ghost" className="w-full" disabled={people.length === 0} onClick={() => setScanOpen(true)}>
+            <ScanLine className="size-4" aria-hidden="true" />
+            สแกนใบเสร็จ
+            <BetaBadge />
+          </Button>
+          {people.length === 0 && <p className="text-center text-xs text-stone-400">เพิ่มเพื่อนในขั้นที่ 2 ก่อน ถึงจะสแกนได้</p>}
+        </div>
+
         <div className="flex flex-col gap-2">
           <form className="flex gap-2" onSubmit={(e) => (e.preventDefault(), addItem())}>
             <Input
@@ -376,6 +399,8 @@ export function BillSplitter() {
           </div>
         </StepCard>
       )}
+
+      <ReceiptScan open={scanOpen} onOpenChange={setScanOpen} onApply={applyScanned} />
 
       {qrShare && (
         <QrSheet
