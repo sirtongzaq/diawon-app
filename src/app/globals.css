@@ -88,6 +88,11 @@
 
 @layer base {
   :root { color-scheme: light; }
+  /*
+   * iOS Safari ซูมเข้าช่อง input อัตโนมัติถ้าฟอนต์เล็กกว่า 16px
+   * จึงบังคับ 16px ขึ้นไปเสมอ (แทนการปิดซูมของทั้งหน้า ซึ่งแย่ต่อคนสายตาไม่ดี)
+   */
+  input, textarea, select { font-size: max(16px, 1em); }
   body {
     background: var(--color-page);
     color: var(--color-ink);
