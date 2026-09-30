@@ -1,4 +1,6 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { PAID_EVENT, REJECT_EVENT, SLIP_EVENT, type PaidPayload, type SlipPayload } from "@/lib/bill-channel";
 import type { BillInput } from "@/lib/bill-input";
 import { computeSplit, type Item, type Person, type SplitResult } from "@/lib/split";
 import { getAdminClient } from "./supabase";
@@ -169,9 +171,14 @@ export async function setPaid(adminToken: string, personId: string, paid: boolea
     .update({ paid_at: paid ? new Date().toISOString() : null })
     .eq("id", personId)
     .eq("bill_id", bill.id)
-    .select("id");
+    .select("id, token");
   if (uErr) throw new Error(uErr.message);
-  return (data?.length ?? 0) > 0;
+  const person = data?.[0];
+  if (!person) return false;
+  // แจ้งเพื่อนคนนั้นแบบ realtime ว่าเจ้าของบิลยืนยัน/ยกเลิกสถานะโอนแล้ว
+  const payload: PaidPayload = { paid };
+  await broadcast(supabase, topicServer("person", person.token as string), PAID_EVENT, payload);
+  return true;
 }
 
 export type BillSummary = {
@@ -235,7 +242,7 @@ export async function saveSlip(
   const supabase = db();
   const { data: person, error } = await supabase
     .from("people")
-    .select("id, bill_id, paid_at, slip_path")
+    .select("id, name, bill_id, paid_at, slip_path")
     .eq("token", personToken)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -258,7 +265,34 @@ export async function saveSlip(
   }
   // ส่งใหม่ → ลบไฟล์เก่าทิ้ง (ไม่ให้ error ตรงนี้ทำให้ทั้งหมดล้ม)
   if (person.slip_path) await supabase.storage.from(SLIP_BUCKET).remove([person.slip_path]);
+  await notifySlip(supabase, person.bill_id, person.name);
   return "ok";
+}
+
+/** ชื่อ channel เดียวกับ billTopic()/personTopic() ฝั่งเบราว์เซอร์ (sha256 ของ token) */
+const topicServer = (prefix: "bill" | "person", secret: string) =>
+  `${prefix}-${createHash("sha256").update(secret).digest("hex").slice(0, 32)}`;
+
+/**
+ * ส่งสัญญาณ realtime (Supabase Broadcast)
+ * ล้มเหลวได้เงียบๆ — ฝั่ง client มี polling/focus refetch สำรองอยู่แล้ว
+ */
+async function broadcast(supabase: SupabaseClient, topic: string, event: string, payload: object) {
+  try {
+    const channel = supabase.channel(topic);
+    await channel.httpSend(event, payload);
+    await supabase.removeChannel(channel);
+  } catch (e) {
+    console.error(`broadcast ${event} failed`, e);
+  }
+}
+
+/** แจ้งเจ้าของบิลว่ามีสลิปใหม่ */
+async function notifySlip(supabase: SupabaseClient, billId: string, personName: string) {
+  const { data: bill } = await supabase.from("bills").select("admin_token, title").eq("id", billId).maybeSingle();
+  if (!bill) return;
+  const payload: SlipPayload = { name: personName, title: bill.title as string };
+  await broadcast(supabase, topicServer("bill", bill.admin_token as string), SLIP_EVENT, payload);
 }
 
 /** เจ้าของบิลไม่อนุมัติสลิป → ลบสลิป ให้เพื่อนส่งใหม่ได้ */
@@ -270,7 +304,7 @@ export async function rejectSlip(adminToken: string, personId: string) {
 
   const { data: person, error: pErr } = await supabase
     .from("people")
-    .select("id, slip_path")
+    .select("id, token, slip_path")
     .eq("id", personId)
     .eq("bill_id", bill.id)
     .maybeSingle();
@@ -283,6 +317,7 @@ export async function rejectSlip(adminToken: string, personId: string) {
     .eq("id", person.id);
   if (uErr) throw new Error(uErr.message);
   if (person.slip_path) await supabase.storage.from(SLIP_BUCKET).remove([person.slip_path]);
+  await broadcast(supabase, topicServer("person", person.token as string), REJECT_EVENT, {});
   return true;
 }
 

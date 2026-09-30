@@ -1,30 +1,10 @@
 "use client";
-import { useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
+import { setTheme, useTheme } from "@/hooks/use-theme";
 
-type Theme = "light" | "dark";
-const KEY = "diawon:theme";
-
-const listeners = new Set<() => void>();
-const subscribe = (cb: () => void) => {
-  listeners.add(cb);
-  return () => void listeners.delete(cb);
-};
-const getTheme = (): Theme =>
-  document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-
-function setTheme(next: Theme) {
-  document.documentElement.dataset.theme = next;
-  try {
-    localStorage.setItem(KEY, next);
-  } catch {}
-  listeners.forEach((l) => l());
-}
-
-/** ปุ่มสลับ light / dark (ค่าเริ่มต้นตามระบบ ตั้งโดยสคริปต์ใน <head> กันจอวาบ) */
+/** ปุ่มสลับ light / dark */
 export function ThemeToggle() {
-  const theme = useSyncExternalStore(subscribe, getTheme, () => "light" as Theme);
-  const dark = theme === "dark";
+  const dark = useTheme() === "dark";
 
   return (
     <button

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
+import { LiveStatus } from "@/features/bill/live-status";
 import { PayQr } from "@/features/bill/pay-qr";
 import { SlipUpload } from "@/features/bill/slip-upload";
 import { getBillByPersonToken, NotConfiguredError } from "@/lib/server/bills";
@@ -30,6 +31,7 @@ export default async function FriendPage({ params }: PageProps<"/p/[token]">) {
 
   return (
     <main className="mx-auto flex max-w-md flex-col gap-6 px-5 pt-4 pb-32">
+      <LiveStatus token={token} paid={paid} />
       <section className="text-center">
         <p className="text-sm text-stone-500">{bill.title}</p>
         <h1 className="mt-1 text-lg font-bold">{me.name}</h1>

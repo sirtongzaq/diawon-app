@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
+import { onBillsChanged } from "@/lib/bill-events";
 import { ChevronRight, Plus, Trash2 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { usePersistedString } from "@/hooks/use-persisted-string";
@@ -32,6 +34,10 @@ export function BillsList() {
   const tokensKey = local.map((b) => b.adminToken).join(",");
   const [state, setState] = useState<State>({ status: "loading" });
   const [filter, setFilter] = useState<"all" | "open" | "done">("all");
+  const [tick, setTick] = useState(0);
+
+  // มีสลิปใหม่ / เจ้าของอนุมัติ → โหลดสถานะใหม่
+  useEffect(() => onBillsChanged(() => setTick((t) => t + 1)), []);
 
   useEffect(() => {
     if (!tokensKey) return;
@@ -49,13 +55,17 @@ export function BillsList() {
         setState({ status: "ok", byToken });
       })
       .catch((e) => {
-        if (e?.name !== "AbortError") setState({ status: "error", message: e?.message ?? "โหลดรายการบิลไม่สำเร็จ" });
+        if (e?.name === "AbortError") return;
+        const message = e?.message ?? "โหลดรายการบิลไม่สำเร็จ";
+        setState({ status: "error", message });
+        toast.error(message, { id: "bills-load-error" });
       });
     return () => ac.abort();
-  }, [tokensKey]);
+  }, [tokensKey, tick]);
 
   function forget(b: RecentBill) {
     setRaw(JSON.stringify(local.filter((x) => x.adminToken !== b.adminToken)));
+    toast.success(`ลบ “${b.title}” ออกจากรายการแล้ว`);
   }
 
   const byToken = state.status === "ok" ? state.byToken : {};

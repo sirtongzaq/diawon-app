@@ -2,6 +2,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { emitBillsChanged } from "@/lib/bill-events";
 import { Check, ChevronLeft, Copy, FileImage, Send, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
@@ -38,7 +40,6 @@ export function ManageBill({
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
 
   const paidCount = people.filter((p) => p.paid).length;
@@ -46,9 +47,8 @@ export function ManageBill({
   const pending = people.filter((p) => p.hasSlip && !p.paid);
   const viewing = people.find((p) => p.id === viewingId) ?? null;
 
-  async function call(path: string, body: object, personId: string, fallback: string) {
+  async function call(path: string, body: object, personId: string, fallback: string, success: string) {
     setBusy(personId);
-    setError(null);
     try {
       const res = await fetch(`/api/manage/${adminToken}/${path}`, {
         method: "POST",
@@ -56,10 +56,12 @@ export function ManageBill({
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? fallback);
+      toast.success(success);
       router.refresh();
+      emitBillsChanged(); // ให้ badge ที่เมนู/หน้ารายการบิลนับใหม่
       return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : fallback);
+      toast.error(e instanceof Error ? e.message : fallback);
       return false;
     } finally {
       setBusy(null);
@@ -67,22 +69,36 @@ export function ManageBill({
   }
 
   const setPaid = (p: P, paid: boolean) =>
-    call("paid", { personId: p.id, paid }, p.id, "อัปเดตไม่สำเร็จ");
+    call(
+      "paid",
+      { personId: p.id, paid },
+      p.id,
+      "อัปเดตไม่สำเร็จ",
+      paid ? `ยืนยันว่า ${p.name} โอนแล้ว` : `ยกเลิกสถานะโอนแล้วของ ${p.name}`,
+    );
 
   async function approve(p: P) {
     if (await setPaid(p, true)) setViewingId(null);
   }
   async function reject(p: P) {
-    if (await call("slip/reject", { personId: p.id }, p.id, "ทำรายการไม่สำเร็จ")) setViewingId(null);
+    const ok = await call(
+      "slip/reject",
+      { personId: p.id },
+      p.id,
+      "ทำรายการไม่สำเร็จ",
+      `ไม่อนุมัติสลิปของ ${p.name} · ให้ส่งใหม่ได้`,
+    );
+    if (ok) setViewingId(null);
   }
 
   async function copy(p: P) {
     try {
       await navigator.clipboard.writeText(linkFor(p.token));
       setCopied(p.id);
+      toast.success(`คัดลอกลิงก์ของ ${p.name} แล้ว`);
       setTimeout(() => setCopied((c) => (c === p.id ? null : c)), 1500);
     } catch {
-      setError("คัดลอกไม่ได้ ลองกดแชร์ผ่าน LINE แทนนะ");
+      toast.error("คัดลอกไม่ได้ ลองกดแชร์ผ่าน LINE แทนนะ");
     }
   }
 
@@ -122,8 +138,6 @@ export function ManageBill({
           </span>
         </button>
       )}
-
-      {error && <p role="alert" className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
 
       <ul className="flex flex-col gap-3">
         {people.map((p) => {

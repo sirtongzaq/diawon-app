@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Clock, ImagePlus, RefreshCw, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { compressImage } from "@/lib/image-compress";
@@ -30,14 +31,19 @@ export function SlipUpload({ token, pending, uploadedAt }: { token: string; pend
     setPicked(f && urlRef.current ? { file: f, url: urlRef.current } : null);
   }
 
+  function fail(message: string) {
+    setError(message);
+    toast.error(message);
+  }
+
   async function pick(f: File | undefined) {
     if (!f) return;
     setError(null);
-    if (!f.type.startsWith("image/")) return setError("เลือกได้เฉพาะไฟล์รูปภาพ");
+    if (!f.type.startsWith("image/")) return fail("เลือกได้เฉพาะไฟล์รูปภาพ");
     setBusy(true);
     const small = await compressImage(f);
     setBusy(false);
-    if (small.size > MAX_BYTES) return setError("รูปใหญ่เกินไป (ไม่เกิน 4 MB) ลองแคปหน้าจอสลิปแทนนะ");
+    if (small.size > MAX_BYTES) return fail("รูปใหญ่เกินไป (ไม่เกิน 4 MB) ลองแคปหน้าจอสลิปแทนนะ");
     setFile(small);
   }
 
@@ -58,9 +64,10 @@ export function SlipUpload({ token, pending, uploadedAt }: { token: string; pend
       if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "ส่งสลิปไม่สำเร็จ");
       reset();
       setReplacing(false);
+      toast.success("ส่งสลิปแล้ว รอเจ้าของบิลยืนยัน");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "ส่งสลิปไม่สำเร็จ");
+      fail(e instanceof Error ? e.message : "ส่งสลิปไม่สำเร็จ");
     } finally {
       setBusy(false);
     }

@@ -2,21 +2,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, ListChecks, Plus } from "lucide-react";
+import { useBillAlerts } from "@/hooks/use-bill-alerts";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { href: "/", label: "หน้าแรก", icon: Home, match: ["/"] },
   { href: "/bill", label: "สร้างบิล", icon: Plus, match: ["/bill"] },
-  { href: "/bills", label: "รายการบิล", icon: ListChecks, match: ["/bills", "/manage"] },
+  { href: "/bills", label: "รายการ", icon: ListChecks, match: ["/bills", "/manage"] },
 ] as const;
 
 /** ตรงเป๊ะหรืออยู่ใต้ path นั้น (กัน /bill ไปชน /bills) */
 const matches = (pathname: string, base: string) =>
   base === "/" ? pathname === "/" : pathname === base || pathname.startsWith(`${base}/`);
 
-/** เมนูล่างแบบกระจกโปร่งใส — แถบสี coral เลื่อนตามแท็บที่เลือก */
+/** เมนูล่างแบบกระจกโปร่งใส — แถบสี coral เลื่อนตามแท็บที่เลือก + badge สลิปรอตรวจ */
 export function BottomNav() {
   const pathname = usePathname();
+  const pending = useBillAlerts();
   const active = tabs.findIndex((t) => t.match.some((m) => matches(pathname, m)));
 
   return (
@@ -36,21 +38,34 @@ export function BottomNav() {
             }}
           />
         )}
-        {tabs.map(({ href, label, icon: Icon }, i) => (
-          <li key={href} className="relative z-10 flex-1">
-            <Link
-              href={href}
-              aria-current={i === active ? "page" : undefined}
-              className={cn(
-                "flex min-h-12 items-center justify-center gap-1.5 rounded-full text-[13px] font-semibold transition-colors duration-300",
-                i === active ? "text-on-brand" : "text-stone-600 hover:text-ink",
+        {tabs.map(({ href, label, icon: Icon }, i) => {
+          const badge = href === "/bills" ? pending : 0;
+          return (
+            <li key={href} className="relative z-10 flex-1">
+              <Link
+                href={href}
+                aria-current={i === active ? "page" : undefined}
+                aria-label={badge ? `รายการบิล มีสลิปรอตรวจ ${badge} รายการ` : href === "/bills" ? "รายการบิล" : undefined}
+                className={cn(
+                  "flex min-h-12 items-center justify-center gap-1.5 rounded-full text-[13px] font-semibold transition-colors duration-300",
+                  i === active ? "text-on-brand" : "text-stone-600 hover:text-ink",
+                  badge > 0 && "pr-6", // เว้นที่ให้ badge ชิดขวา ไม่ทับข้อความ
+                )}
+              >
+                <Icon className="size-[18px]" aria-hidden="true" />
+                {label}
+              </Link>
+              {badge > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-1/2 right-2 flex h-[18px] min-w-[18px] -translate-y-1/2 animate-pop-in items-center justify-center rounded-full bg-ink px-1 text-[10px] leading-none font-bold text-page"
+                >
+                  {badge > 9 ? "9+" : badge}
+                </span>
               )}
-            >
-              <Icon className="size-[18px]" aria-hidden="true" />
-              {label}
-            </Link>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );

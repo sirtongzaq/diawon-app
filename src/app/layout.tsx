@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Noto_Sans_Thai } from "next/font/google";
 import { BottomNav } from "@/components/bottom-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Toaster } from "@/components/toaster";
 import "./globals.css";
 
 const notoThai = Noto_Sans_Thai({
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </header>
         {children}
         <BottomNav />
+        <Toaster />
       </body>
     </html>
   );
