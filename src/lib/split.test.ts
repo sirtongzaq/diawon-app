@@ -27,6 +27,23 @@ test("computeSplit: service 10% + VAT 7%", () => {
   assert.equal(r.unassigned.length, 0);
 });
 
+test("computeSplit: lines รวมกันเท่ากับ subtotal ของแต่ละคน", () => {
+  const people = [
+    { id: "a", name: "A" },
+    { id: "b", name: "B" },
+    { id: "c", name: "C" },
+  ];
+  const items = [
+    { id: "1", name: "x", price: 10000, people: ["a", "b", "c"] },
+    { id: "2", name: "y", price: 5555, people: ["a", "c"] },
+  ];
+  const r = computeSplit(people, items, { servicePct: 10, vatPct: 7 });
+  for (const s of r.shares) {
+    assert.equal(s.lines.reduce((t, l) => t + l.amount, 0), s.subtotal);
+  }
+  assert.equal(r.shares[0].lines[0].sharedWith, 3);
+});
+
 test("computeSplit: รายการที่ไม่มีคนกินถูกรายงาน", () => {
   const r = computeSplit(
     [{ id: "a", name: "A" }],

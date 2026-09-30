@@ -13,12 +13,22 @@ export type Item = {
 };
 export type Fees = { servicePct: number; vatPct: number };
 
+/** รายการที่คนนี้ต้องจ่าย (หลังหารแล้ว) ไว้แสดงให้เพื่อนดูว่ายอดมาจากอะไร */
+export type ShareLine = {
+  itemId: string;
+  name: string;
+  amount: number;
+  /** หารกันกี่คน */
+  sharedWith: number;
+};
+
 export type PersonShare = {
   personId: string;
   subtotal: number;
   service: number;
   vat: number;
   total: number;
+  lines: ShareLine[];
 };
 
 export type SplitResult = {
@@ -55,6 +65,7 @@ export function computeSplit(
   const idx = new Map(people.map((p, i) => [p.id, i]));
   const sub = people.map(() => 0);
   const unassigned: Item[] = [];
+  const lines: ShareLine[][] = people.map(() => []);
 
   for (const item of items) {
     const eaters = item.people.filter((id) => idx.has(id));
@@ -63,7 +74,16 @@ export function computeSplit(
       continue;
     }
     const parts = allocate(item.price, eaters.map(() => 1));
-    eaters.forEach((id, k) => (sub[idx.get(id)!] += parts[k]));
+    eaters.forEach((id, k) => {
+      const i = idx.get(id)!;
+      sub[i] += parts[k];
+      lines[i].push({
+        itemId: item.id,
+        name: item.name,
+        amount: parts[k],
+        sharedWith: eaters.length,
+      });
+    });
   }
 
   const subtotal = sub.reduce((a, b) => a + b, 0);
@@ -79,6 +99,7 @@ export function computeSplit(
     service: serviceParts[i],
     vat: vatParts[i],
     total: sub[i] + serviceParts[i] + vatParts[i],
+    lines: lines[i],
   }));
 
   return {

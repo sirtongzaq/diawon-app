@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, BellRing, QrCode, Receipt } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { RecentBills } from "@/features/bill/recent-bills";
 import { cn } from "@/lib/utils";
 
 const steps = [
@@ -45,13 +46,15 @@ export default function HomePage() {
         </ul>
       </section>
 
-      {/* บิลล่าสุด (dump) */}
+      {/* บิลล่าสุด */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-stone-700">บิลล่าสุด</h2>
-        <div className="rounded-2xl border border-dashed border-stone-300 bg-card/60 px-4 py-8 text-center">
-          <p className="text-sm text-stone-500">ยังไม่มีบิล</p>
-          <p className="mt-1 text-xs text-stone-400">บิลที่สร้างจะมาอยู่ตรงนี้</p>
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-sm font-semibold text-stone-700">บิลล่าสุด</h2>
+          <Link href="/bills" className="text-sm font-medium text-accent underline-offset-4 hover:underline">
+            ดูทั้งหมด
+          </Link>
         </div>
+        <RecentBills />
       </section>
     </main>
   );

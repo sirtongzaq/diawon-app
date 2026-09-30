@@ -19,4 +19,11 @@ export function parseBaht(input: string) {
   return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : 0;
 }
 
+/** กรองให้เหลือเฉพาะตัวเลข + จุดทศนิยมได้ 1 จุด (ทศนิยมไม่เกิน 2 หลัก) */
+export function sanitizeAmount(input: string) {
+  const [int, ...rest] = input.replace(/[^\d.]/g, "").split(".");
+  const head = int.slice(0, 7);
+  return rest.length === 0 ? head : `${head}.${rest.join("").slice(0, 2)}`;
+}
+
 export const uid = () => Math.random().toString(36).slice(2, 9);

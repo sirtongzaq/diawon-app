@@ -11,6 +11,11 @@ export function isValidPromptPayId(raw: string) {
   return [10, 13, 15].includes(id.length);
 }
 
+/** เบอร์มือถือไทย 10 หลัก ขึ้นต้น 06 / 08 / 09 (และ 05 / 07 ตามช่วงเบอร์ที่เปิดใช้) */
+export function isValidThaiPhone(raw: string) {
+  return /^0[56789]\d{8}$/.test(raw);
+}
+
 /** amountSatang = 0 → QR แบบไม่ระบุยอด */
 export function promptPayPayload(id: string, amountSatang: number) {
   const opts = amountSatang > 0 ? { amount: amountSatang / 100 } : {};

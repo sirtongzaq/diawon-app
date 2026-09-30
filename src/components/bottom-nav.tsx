@@ -1,27 +1,30 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Receipt } from "lucide-react";
+import { Home, ListChecks, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
-  { href: "/", label: "หน้าแรก", icon: Home },
-  { href: "/bill", label: "บิล", icon: Receipt },
+  { href: "/", label: "หน้าแรก", icon: Home, match: ["/"] },
+  { href: "/bill", label: "สร้างบิล", icon: Plus, match: ["/bill"] },
+  { href: "/bills", label: "รายการบิล", icon: ListChecks, match: ["/bills", "/manage"] },
 ] as const;
+
+/** ตรงเป๊ะหรืออยู่ใต้ path นั้น (กัน /bill ไปชน /bills) */
+const matches = (pathname: string, base: string) =>
+  base === "/" ? pathname === "/" : pathname === base || pathname.startsWith(`${base}/`);
 
 /** เมนูล่างแบบกระจกโปร่งใส — แถบสี coral เลื่อนตามแท็บที่เลือก */
 export function BottomNav() {
   const pathname = usePathname();
-  const active = tabs.findIndex(({ href }) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href),
-  );
+  const active = tabs.findIndex((t) => t.match.some((m) => matches(pathname, m)));
 
   return (
     <nav
       aria-label="เมนูหลัก"
       className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-5 pb-[max(1rem,env(safe-area-inset-bottom))]"
     >
-      <ul className="pointer-events-auto relative flex w-full max-w-xs items-center rounded-full border border-stone-200/60 bg-card/50 p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.14)] backdrop-blur-xl backdrop-saturate-150">
+      <ul className="pointer-events-auto relative flex w-full max-w-sm items-center rounded-full border border-stone-200/60 bg-card/50 p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.14)] backdrop-blur-xl backdrop-saturate-150">
         {/* แถบที่เลื่อน: กว้างเท่าแท็บเดียว เลื่อนด้วย translateX ตาม index */}
         {active >= 0 && (
           <span
@@ -39,11 +42,11 @@ export function BottomNav() {
               href={href}
               aria-current={i === active ? "page" : undefined}
               className={cn(
-                "flex min-h-12 items-center justify-center gap-2 rounded-full text-sm font-semibold transition-colors duration-300",
+                "flex min-h-12 items-center justify-center gap-1.5 rounded-full text-[13px] font-semibold transition-colors duration-300",
                 i === active ? "text-on-brand" : "text-stone-600 hover:text-ink",
               )}
             >
-              <Icon className="size-5" aria-hidden="true" />
+              <Icon className="size-[18px]" aria-hidden="true" />
               {label}
             </Link>
           </li>
