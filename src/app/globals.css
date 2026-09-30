@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+/*
+ * Theme: Ocean mist — ฟ้าอมเทาอ่อน (light) / กรมท่าเข้ม (dark)
+ * สลับด้วย <html data-theme="light|dark">
+ * Brand: coral #F2765E (primary) · blue #315B8C (accent)
+ *
+ * คลาส stone-* ที่ใช้ในคอมโพเนนต์ถูกแมปเป็นเทาอมน้ำเงิน และกลับด้านใน dark
+ * (stone-50 = พื้นอ่อน/มืดสุด, stone-900 = สีตัวอักษรหลัก)
+ * แก้สีทั้งแอปได้ที่ไฟล์นี้ที่เดียว
+ */
+@theme {
+  --font-sans: var(--font-noto-thai), ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand: #f2765e;
+  --color-accent: #315b8c;
+  --color-on-brand: #1c1414; /* ตัวอักษรบนปุ่ม coral (คงที่ทั้ง 2 โหมด) */
+
+  --color-page: #eef3f9; /* พื้นหลังหน้า */
+  --color-card: #ffffff; /* พื้นการ์ด / sheet */
+  --color-ink: #12233a;
+
+  --color-stone-50: #f4f7fb;
+  --color-stone-100: #e8eef6;
+  --color-stone-200: #d9e3ef;
+  --color-stone-300: #c3d1e2;
+  --color-stone-400: #8fa0b6;
+  --color-stone-500: #64768e;
+  --color-stone-600: #465a73;
+  --color-stone-700: #33475f;
+  --color-stone-800: #1f324b;
+  --color-stone-900: #12233a;
+
+  --color-rose-50: #fdecea;
+  --color-rose-600: #c2432c;
+  --color-rose-700: #a3341f;
+
+  --animate-fade-in: fade-in 160ms ease-out;
+  --animate-fade-out: fade-out 120ms ease-in forwards;
+  --animate-pop-in: pop-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-pop-out: pop-out 120ms ease-in forwards;
+  --animate-slide-up: slide-up 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-down: slide-down 160ms ease-in forwards;
+  --animate-page-in: page-in 320ms cubic-bezier(0.32, 0.72, 0, 1);
+
+  @keyframes fade-in { from { opacity: 0; } }
+  @keyframes fade-out { to { opacity: 0; } }
+  @keyframes pop-in { from { opacity: 0; scale: 0.96; } }
+  @keyframes pop-out { to { opacity: 0; scale: 0.96; } }
+  @keyframes slide-up { from { translate: 0 100%; } }
+  @keyframes slide-down { to { translate: 0 100%; } }
+  @keyframes page-in { from { opacity: 0; translate: 0 10px; } }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-page: #0b1420;
+  --color-card: #142033;
+  --color-ink: #eaf1fa;
+
+  --color-stone-50: #0f1a2b;
+  --color-stone-100: #1a2a40;
+  --color-stone-200: #22314a;
+  --color-stone-300: #34486a;
+  --color-stone-400: #6b7f9c;
+  --color-stone-500: #93a5be;
+  --color-stone-600: #b8c6da;
+  --color-stone-700: #d3ddea;
+  --color-stone-800: #e6edf6;
+  --color-stone-900: #eaf1fa;
+
+  --color-rose-50: #3a1a1a;
+  --color-rose-600: #ff8f7a;
+  --color-rose-700: #ff8f7a;
+}
+
+@layer base {
+  :root { color-scheme: light; }
+  body {
+    background: var(--color-page);
+    color: var(--color-ink);
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
